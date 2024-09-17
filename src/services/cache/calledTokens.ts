@@ -10,9 +10,7 @@ const saveCalledTokenToCache = (token: Contract): void => {
 const loadCalledTokensToCache = async (): Promise<void> => {
 	const calledTokens: Contract[] = await getAllActiveContracts();
 	calledTokens.forEach((token) => {
-		console.log(token);
 		const cacheKey = `${token.contractId}_${token.chatId}`;
-		console.log('cache key in loadCalledTokensToCache: ' + cacheKey);
 		cache.calledTokensCache.set(cacheKey, token);
 	});
 	console.log('Called tokens loaded into cache.');
@@ -23,7 +21,6 @@ const tryGetCachedTokenInfo = (
 	chatId: string,
 ): Contract | undefined => {
 	const cacheKey = `${contractId}_${chatId}`;
-	console.log('cache key in trygetcache: ' + cacheKey);
 	return cache.calledTokensCache.get<Contract>(cacheKey);
 };
 

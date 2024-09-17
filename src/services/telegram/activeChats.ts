@@ -42,7 +42,7 @@ export const addChatId = async (chatId: string | number): Promise<void> => {
 export const setupActiveChatListener = (bot: Telegraf): void => {
 	bot.on('new_chat_members', async (ctx) => {
 		const chatId = ctx.chat.id;
-		await addChatId(chatId); // Add the new chat ID and save it
+		await addChatId(chatId);
 		console.log(`Bot added to a new chat: ${chatId}`);
 	});
 };

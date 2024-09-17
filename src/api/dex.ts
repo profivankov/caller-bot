@@ -18,24 +18,6 @@ const PairDataSchema = z
 		quoteToken: TokenInfoSchema,
 		priceNative: z.string(),
 		priceUsd: z.string(),
-		// txns: z.object({
-		// 	m5: z.object({ buys: z.number(), sells: z.number() }),
-		// 	h1: z.object({ buys: z.number(), sells: z.number() }),
-		// 	h6: z.object({ buys: z.number(), sells: z.number() }),
-		// 	h24: z.object({ buys: z.number(), sells: z.number() }),
-		// }),
-		// volume: z.object({
-		// 	m5: z.number(),
-		// 	h1: z.number(),
-		// 	h6: z.number(),
-		// 	h24: z.number(),
-		// }),
-		// priceChange: z.object({
-		// 	m5: z.number(),
-		// 	h1: z.number(),
-		// 	h6: z.number(),
-		// 	h24: z.number(),
-		// }),
 		liquidity: z.object({
 			usd: z.number(),
 			base: z.number(),

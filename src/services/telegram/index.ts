@@ -29,11 +29,11 @@ const bot = new Telegraf(BOT_TOKEN);
 
 const init = async (): Promise<void> => {
 	await loadChatIds();
-	await startBot();
+	startBot();
 	setupActiveChatListener(bot);
 };
 
-const startBot = async (): Promise<void> => {
+const startBot = (): void => {
 	try {
 		// https://github.com/telegraf/telegraf/issues/1749
 		void bot.launch({ dropPendingUpdates: true }, () =>
@@ -74,9 +74,6 @@ bot.command(['call', 'ci'], async (ctx: Context) => {
 		);
 
 		if (cachedTokenInfo) {
-			console.log('cachedTokenInfo');
-			console.log(cachedTokenInfo);
-
 			await ctx.reply(
 				`*${cachedTokenInfo.symbol}* \`${contractAddress}\` has been called by *${cachedTokenInfo.createdBy}* already at *${escapeMarkdown(formatMarketCap(cachedTokenInfo.initialMcap))}*`,
 				{ parse_mode: 'MarkdownV2' },
@@ -279,14 +276,10 @@ const sendInitializationMessage = async (text: string): Promise<void> => {
 	for (const chatId of activeChatIds) {
 		try {
 			await bot.telegram.sendMessage(chatId, text);
-			console.log(`Message sent to chat ${chatId}`);
 		} catch (error) {
 			console.error(`Failed to send message to chat ${chatId}:`, error);
 		}
 	}
 };
-
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
 export { bot, init, sendInitializationMessage, sendMessage };

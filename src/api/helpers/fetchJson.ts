@@ -16,7 +16,6 @@ export default async function fetchJson<T>(
 	}
 
 	const data: unknown = await response.json();
-	// console.log(JSON.stringify(data, null, 2));
 
 	const result = schema.safeParse(data);
 	if (!result.success) {

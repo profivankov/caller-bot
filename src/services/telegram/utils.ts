@@ -23,5 +23,5 @@ export const escapeMarkdown = (input: string | number): string => {
 		text = input.toString();
 	}
 
-	return text.replace(/[_*[\]()~`>#\+\-=|{}.!]/g, '\\$&');
+	return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
 };
