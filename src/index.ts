@@ -1,4 +1,5 @@
 import { connectToDatabase } from './database';
+import { updateTokenPriceJob } from './services/async';
 import { loadCalledTokensToCache } from './services/cache/calledTokens';
 import { init, sendInitializationMessage } from './services/telegram';
 
@@ -18,6 +19,7 @@ const startApp = async () => {
 
 	try {
 		await loadCalledTokensToCache();
+		await updateTokenPriceJob();
 	} catch (error) {
 		console.log(error);
 	}

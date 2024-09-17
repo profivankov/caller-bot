@@ -30,7 +30,7 @@ const connectToDatabase = async (): Promise<void> => {
 export const getDB = async (): Promise<Db> => {
 	if (!db) {
 		console.log('DB is not initialized yet. Waiting for connection...');
-		await connectToDatabase(); // Make sure the connection is ready
+		await connectToDatabase();
 	}
 	return db!;
 };

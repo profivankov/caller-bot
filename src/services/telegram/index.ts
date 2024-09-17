@@ -2,20 +2,22 @@ import { Context, Telegraf } from 'telegraf';
 import { Message } from 'typegram';
 
 import { PairData } from '../../api/dex';
-import { PartialContract } from '../../models/partialContract';
+import Contract from '../../types/contract';
 import {
 	saveCalledTokenToCache,
 	tryGetCachedTokenInfo,
 	tryGetCachedTokensByName,
+	tryGetLastTenCachedTokens,
 } from '../cache/calledTokens';
 import { tryGetPairData } from '../cache/pairData';
 import { getActionData, saveActionData } from '../cache/telegramState';
-import { createContract } from '../contractService';
+import { createContract } from '../contract';
 import {
 	getActiveChatIds,
 	loadChatIds,
 	setupActiveChatListener,
 } from './activeChats';
+import { escapeMarkdown, formatMarketCap } from './utils';
 
 const BOT_TOKEN = process.env.BOT_TOKEN ?? null;
 
@@ -49,7 +51,7 @@ const generateActionId = (): string => {
 	return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
-bot.command('call', async (ctx: Context) => {
+bot.command(['call', 'ci'], async (ctx: Context) => {
 	try {
 		if (!ctx.message || !isTextMessage(ctx.message)) {
 			await ctx.reply('This command can only be used in a text message.');
@@ -72,10 +74,12 @@ bot.command('call', async (ctx: Context) => {
 		);
 
 		if (cachedTokenInfo) {
+			console.log('cachedTokenInfo');
 			console.log(cachedTokenInfo);
 
 			await ctx.reply(
-				`${contractAddress} has been called by ${cachedTokenInfo.username} already`,
+				`*${cachedTokenInfo.symbol}* \`${contractAddress}\` has been called by *${cachedTokenInfo.createdBy}* already at *${escapeMarkdown(formatMarketCap(cachedTokenInfo.initialMcap))}*`,
+				{ parse_mode: 'MarkdownV2' },
 			);
 			return;
 		}
@@ -141,36 +145,32 @@ bot.on('callback_query', async (ctx) => {
 			}
 
 			const username = ctx.from?.username ?? 'Unknown User';
-
 			const contractData: PairData = await tryGetPairData(contractAddress);
-
 			const chatId = ctx.chat!.id.toString();
-
-			await createContract({
+			const marketCap = contractData.marketCap;
+			const contract: Contract = {
 				contractId: contractData.baseToken.address,
 				symbol: contractData.baseToken.symbol,
 				chain: contractData.chainId,
 				initialLiquity: contractData.liquidity.usd,
-				initialMcap: contractData.marketCap,
-				currentMcap: contractData.marketCap,
-				maxMcap: contractData.marketCap,
+				initialMcap: marketCap,
+				maxMcapDate: new Date(),
+				currentMcap: marketCap,
+				maxMcap: marketCap,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				createdBy: username,
 				chatId,
-			});
-
-			await ctx.reply(
-				`Contract ${contractAddress} has been called by ${username} at ${contractData.marketCap}.`,
-			);
-
-			const partialContract: PartialContract = {
-				contractId: contractData.baseToken.address,
-				chatId,
-				username,
 			};
 
-			saveCalledTokenToCache(partialContract);
+			await createContract(contract);
+
+			await ctx.reply(
+				`*${contractData.baseToken.symbol}* \`${contractAddress}\` has been called by *${username}* at *${escapeMarkdown(formatMarketCap(marketCap))}*`,
+				{ parse_mode: 'MarkdownV2' },
+			);
+
+			saveCalledTokenToCache(contract);
 
 			await ctx.editMessageReplyMarkup({
 				inline_keyboard: [
@@ -211,8 +211,7 @@ bot.command('calls', async (ctx: Context) => {
 		return;
 	}
 
-	const chatId = ctx.chat.id;
-
+	const chatId = ctx.chat.id.toString();
 	const commandParts = ctx.message.text.split(' ');
 	const username = commandParts[1];
 
@@ -221,26 +220,38 @@ bot.command('calls', async (ctx: Context) => {
 	if (username) {
 		const recentCalls = tryGetCachedTokensByName(username);
 		const userCalls = recentCalls.filter(
-			(call) => call.chatId === chatId.toString() && call.username === username,
+			(call) => call.chatId === chatId && call.createdBy === username,
 		);
 
 		if (userCalls.length === 0) {
 			response = `No calls found for user: ${username} in this group.`;
 		} else {
-			response = `Calls made by ${username} in this group:\n${userCalls.map((call) => `- ${call.contractId}`).join('\n')}`;
+			response = `Calls made by *@${username}* in this group:\n${userCalls
+				.map(
+					(call) =>
+						`*${call.symbol}* at ${escapeMarkdown(formatMarketCap(call.initialMcap))}  ATH: *${escapeMarkdown(formatMarketCap(call.maxMcap))}* *${escapeMarkdown((call.maxMcap / call.initialMcap).toFixed(2))}x*`,
+				)
+				.join('\n')}`;
 		}
 	} else {
-		response = 'TBI';
-		// const groupCalls = recentCalls.filter((call) => call.chatId === chatId);
+		const recentCalls = tryGetLastTenCachedTokens().filter(
+			(call) => call.chatId === chatId,
+		);
 
-		// if (groupCalls.length === 0) {
-		// 	response = 'No recent calls found in this group.';
-		// } else {
-		// 	response = `Recent calls in this group:\n${groupCalls.map((call) => `${call.user}: ${call.contractAddress}`).join('\n')}`;
-		// }
+		if (recentCalls.length === 0) {
+			await ctx.reply('No recent calls found in this group.');
+			return;
+		}
+
+		response = `Last 10 calls made in this group:\n${recentCalls
+			.map(
+				(call) =>
+					`*@${call.createdBy}* *${call.symbol}* at ${escapeMarkdown(formatMarketCap(call.initialMcap))}  ATH: *${escapeMarkdown(formatMarketCap(call.maxMcap))}* *${escapeMarkdown((call.maxMcap / call.initialMcap).toFixed(2))}x*`,
+			)
+			.join('\n')}`;
 	}
 
-	await ctx.reply(response);
+	await ctx.reply(response, { parse_mode: 'MarkdownV2' });
 });
 
 bot.catch(async (err, ctx) => {

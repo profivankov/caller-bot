@@ -1,7 +1,4 @@
-//
-import NodeCache from 'node-cache';
-
-const actionCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
+import { cache } from '.';
 
 interface ActionData {
 	contractAddress: string;
@@ -9,13 +6,9 @@ interface ActionData {
 }
 
 export const saveActionData = (actionId: string, data: ActionData): void => {
-	actionCache.set(actionId, data);
+	cache.actionCache.set(actionId, data);
 };
 
 export const getActionData = (actionId: string): ActionData | undefined => {
-	return actionCache.get<ActionData>(actionId);
-};
-
-export const deleteActionData = (actionId: string): void => {
-	actionCache.del(actionId);
+	return cache.actionCache.get<ActionData>(actionId);
 };

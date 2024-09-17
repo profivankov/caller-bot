@@ -1,16 +1,10 @@
-import NodeCache from 'node-cache';
-
 import getPairData, { PairData } from '../../api/dex';
-
-const pairDataCache = new NodeCache({
-	stdTTL: 100,
-	checkperiod: 120,
-});
+import { cache } from '.';
 
 export const tryGetPairData = async (
 	contractAddress: string,
 ): Promise<PairData> => {
-	const cachedData = pairDataCache.get(contractAddress);
+	const cachedData = cache.pairDataCache.get(contractAddress);
 
 	if (cachedData && typeof cachedData === 'object') {
 		console.log(`Cache hit for contract: ${contractAddress}`);
@@ -22,7 +16,7 @@ export const tryGetPairData = async (
 	);
 	const contractData = await getPairData(contractAddress);
 
-	pairDataCache.set(contractAddress, contractData);
+	cache.pairDataCache.set(contractAddress, contractData);
 
 	return contractData;
 };

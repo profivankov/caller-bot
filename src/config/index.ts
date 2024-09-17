@@ -1,3 +1,3 @@
 export default {
-	daysToMonitor: 10, // How many days tokens will be monitored for
+	daysToMonitor: 7, // How many days the token should be monitored for
 };

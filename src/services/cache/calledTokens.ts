@@ -1,24 +1,19 @@
-import NodeCache from 'node-cache';
+import Contract from '../../types/contract';
+import { getAllActiveContracts } from '../contract';
+import { cache } from '.';
 
-import { PartialContract } from '../../models/partialContract';
-import { getAllActiveContracts } from '../contractService';
-
-const calledTokensCache = new NodeCache({
-	stdTTL: 10 * 24 * 60 * 60,
-	checkperiod: 60 * 60,
-});
-
-const saveCalledTokenToCache = (partialToken: PartialContract): void => {
-	const cacheKey = `${partialToken.contractId}_${partialToken.chatId}`;
-	calledTokensCache.set(cacheKey, partialToken);
+const saveCalledTokenToCache = (token: Contract): void => {
+	const cacheKey = `${token.contractId}_${token.chatId}`;
+	cache.calledTokensCache.set(cacheKey, token);
 };
 
 const loadCalledTokensToCache = async (): Promise<void> => {
-	const calledTokens: PartialContract[] = await getAllActiveContracts();
-	console.log(calledTokens);
+	const calledTokens: Contract[] = await getAllActiveContracts();
 	calledTokens.forEach((token) => {
+		console.log(token);
 		const cacheKey = `${token.contractId}_${token.chatId}`;
-		calledTokensCache.set(cacheKey, token);
+		console.log('cache key in loadCalledTokensToCache: ' + cacheKey);
+		cache.calledTokensCache.set(cacheKey, token);
 	});
 	console.log('Called tokens loaded into cache.');
 };
@@ -26,21 +21,20 @@ const loadCalledTokensToCache = async (): Promise<void> => {
 const tryGetCachedTokenInfo = (
 	contractId: string,
 	chatId: string,
-): PartialContract | undefined => {
+): Contract | undefined => {
 	const cacheKey = `${contractId}_${chatId}`;
-	return calledTokensCache.get<PartialContract>(cacheKey);
+	console.log('cache key in trygetcache: ' + cacheKey);
+	return cache.calledTokensCache.get<Contract>(cacheKey);
 };
 
-const tryGetCachedTokensByName = (userName: string): PartialContract[] => {
-	const matchingTokens: PartialContract[] = [];
+const tryGetCachedTokensByName = (userName: string): Contract[] => {
+	const matchingTokens: Contract[] = [];
 
-	// Get all keys from the cache
-	const cacheKeys = calledTokensCache.keys();
+	const cacheKeys = cache.calledTokensCache.keys();
 
-	// Iterate over each key, retrieve the token, and check if it matches the tokenName
 	cacheKeys.forEach((key) => {
-		const token = calledTokensCache.get<PartialContract>(key);
-		if (token && token.username === userName) {
+		const token = cache.calledTokensCache.get<Contract>(key);
+		if (token && token.createdBy === userName) {
 			matchingTokens.push(token);
 		}
 	});
@@ -48,9 +42,27 @@ const tryGetCachedTokensByName = (userName: string): PartialContract[] => {
 	return matchingTokens;
 };
 
+const tryGetLastTenCachedTokens = (): Contract[] => {
+	const allTokens: Contract[] = [];
+
+	const cacheKeys = cache.calledTokensCache.keys();
+
+	cacheKeys.forEach((key) => {
+		const token = cache.calledTokensCache.get<Contract>(key);
+		if (token) {
+			allTokens.push(token);
+		}
+	});
+
+	allTokens.sort((a, b) => (a.updatedAt > b.updatedAt ? -1 : 1));
+
+	return allTokens.slice(0, 10);
+};
+
 export {
 	loadCalledTokensToCache,
 	saveCalledTokenToCache,
 	tryGetCachedTokenInfo,
 	tryGetCachedTokensByName,
+	tryGetLastTenCachedTokens,
 };

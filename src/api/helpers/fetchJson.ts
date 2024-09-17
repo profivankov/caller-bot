@@ -15,15 +15,15 @@ export default async function fetchJson<T>(
 		throw new Error(`HTTP status code: ${response.status}`);
 	}
 
-	// Log raw data for debugging purposes
 	const data: unknown = await response.json();
+	// console.log(JSON.stringify(data, null, 2));
 
-	// Validate the data using the provided Zod schema
 	const result = schema.safeParse(data);
 	if (!result.success) {
 		console.error('Zod Validation Error Details:', result.error.format());
+		console.log(JSON.stringify(result.error, null, 2));
 		throw new Error('Invalid data format');
 	}
 
-	return result.data; // Safely return the validated data
+	return result.data;
 }
